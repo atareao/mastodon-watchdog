@@ -76,9 +76,11 @@ impl Twitter{
         let encoded_message = encode("@atareao -filter:retweets");
         let uri = format!("{}/1.1/search/tweets.json", BASE_URI);
         let search = SearchTweets::new(&encoded_message);
-        let authorization_header = oauth::post(&uri, &search, &self.token,
+        let authorization_header = oauth::get(&uri, &search, &self.token,
             oauth::HMAC_SHA1);
         let uri = oauth::to_query(uri.to_owned(), &search);
+        println!("{}", &uri);
+        println!("{}", &authorization_header);
         let client = reqwest::Client::new();
         let res = client
             .get(&uri)
