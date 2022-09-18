@@ -18,7 +18,9 @@ async fn main() {
     let access_token_secret = env::var("TW_ACCESS_TOKEN_SECRET").expect("Not found access token secret");
     let sleep_time = time::Duration::from_secs(sleep_time_in_seconds);
     let twitter = Twitter::new(&consumer_key, &consumer_secret, &access_token, &access_token_secret);
-    twitter.tweet("Hi from rust!!").await;
+    //twitter.tweet("Hi from rust!!").await;
+    let res = twitter.get_mentions().await;
+    println!("{}", res.unwrap());
     loop {
         thread::sleep(sleep_time);
         println!("Esto es una prueba");
