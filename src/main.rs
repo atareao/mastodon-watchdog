@@ -22,8 +22,8 @@ async fn main() {
     let sleep_time = time::Duration::from_secs(sleep_time_in_seconds);
     let twitter = Twitter::new(&consumer_key, &consumer_secret, &access_token, &access_token_secret);
     //twitter.tweet("Hi from rust!!").await;
-    let res = twitter.get_mentions().await;
-    println!("{}", res.unwrap());
+    let res = &twitter.get_mentions().await;
+    println!("{}", res.as_ref().unwrap());
     loop {
         thread::sleep(sleep_time);
         println!("Esto es una prueba");
