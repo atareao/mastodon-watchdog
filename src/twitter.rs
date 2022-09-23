@@ -59,6 +59,7 @@ impl Twitter{
                 token_secret.to_string()),
         }
     }
+
     pub async fn tweet(self, message: &str){
         let uri = format!("{}/1.1/statuses/update.json", BASE_URI);
         let request = Tweet::new(message);
@@ -72,6 +73,7 @@ impl Twitter{
             .send()
             .await;
     }
+
     pub async fn get_mentions(self) -> Result<String, reqwest::Error>{
         let encoded_message = encode("@atareao -filter:retweets");
         let uri = format!("{}/1.1/search/tweets.json", BASE_URI);

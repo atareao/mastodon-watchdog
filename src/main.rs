@@ -9,13 +9,8 @@ use crate::{twitter::Twitter, config::Config};
 #[tokio::main]
 async fn main() {
     dotenv().expect("Not found environment");
-    let last_id = match Config::read("lastid.toml"){
-        Ok(config) => Some(config.get_last_id()),
-        Err(_) => None,
-    };
-    if let Some(value) = last_id{
-        println!("{}", value);
-    }
+    let config = Config::read("lastid.toml").expect("Can not read last id");
+    let last_id = config.get_last_id();
     let sleep_time_in_seconds = env::var("SLEEP_TIME")
         .expect("Not found SLEEP_TIME")
         .parse::<u64>()
