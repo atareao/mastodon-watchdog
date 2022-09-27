@@ -1,7 +1,6 @@
 use reqwest;
 use oauth::Token;
 use std::{format, collections::HashMap};
-use urlencoding::encode;
 
 static BASE_URI: &str = "https://api.twitter.com";
 
@@ -32,15 +31,17 @@ struct SearchTweets{
     include_entities: String,
     result_type: String,
     tweet_mode: String,
+    since_id: String,
 }
 
 impl SearchTweets{
-    fn new(query: &str) -> Self{
+    fn new(query: &str, since_id: &str) -> Self{
         SearchTweets {
             q: query.to_string(),
             include_entities: "false".to_string(),
             result_type: "recent".to_string(),
             tweet_mode: "extended".to_string(),
+            since_id: since_id.to_string(),
         }
     }
     fn get_params(self) -> HashMap<String, String>{
@@ -49,6 +50,7 @@ impl SearchTweets{
         result.insert("include_entities".to_string(), self.include_entities);
         result.insert("result_type".to_string(), self.result_type);
         result.insert("tweet_mode".to_string(), self.tweet_mode);
+        result.insert("since_id".to_string(), self.since_id);
         result
     }
 }
@@ -98,11 +100,10 @@ impl Twitter{
             .await;
     }
 
-    pub async fn get_mentions(&self) -> Result<String, reqwest::Error>{
-        //let encoded_message = encode("@atareao exclude:retweets");
-        let encoded_message = encode("@atareao");
+    pub async fn get_mentions(&self, since_id: &str) -> Result<String, reqwest::Error>{
+        let encoded_message = "@atareao AND -filter:retweets AND -filter:replies";
         let uri = format!("{}/1.1/search/tweets.json", BASE_URI);
-        let search = SearchTweets::new(&encoded_message);
+        let search = SearchTweets::new(&encoded_message, since_id);
         let authorization_header = oauth::get(&uri, &search, &self.token,
             oauth::HMAC_SHA1);
         let uri = oauth::to_query(uri.to_owned(), &search);
