@@ -38,7 +38,7 @@ impl Mastodon{
     }
 
     pub async fn search(&self, min_id: &str){
-        let query = "atareao";
+        let query = "atareao AND -filter:reblog";
         let url = format!("{}/api/v2/search?min_id={}&q={}&type=statuses",
             self.base_uri,
             min_id,
