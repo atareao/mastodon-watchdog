@@ -38,7 +38,7 @@ impl Mastodon{
     }
 
     pub async fn search(&self, min_id: &str){
-        let query = "atareao AND -filter:reblog";
+        let query = "atareao";
         let url = format!("{}/api/v2/search?min_id={}&q={}&type=statuses",
             self.base_uri,
             min_id,
@@ -65,6 +65,10 @@ impl Mastodon{
             let account = status.get("account").unwrap();
             let name = account.get("display_name").unwrap().as_str().unwrap();
             let nickname = account.get("acct").unwrap().as_str().unwrap();
+            let mentions = status.get("mentions").unwrap().as_array().unwrap();
+            for mention in mentions{
+                println!("{}", mention);
+            }
             println!("Id: {}", id);
             println!("created_at: {}", created_at);
             println!("content: {}", content);
@@ -129,11 +133,3 @@ async fn search() {
     mastodon.search("109035315460271106").await;
 }
 
-#[actix_rt::test]
-async fn notifications() {
-    dotenv();
-    let base_uri = std::env::var("MASTODON_BASE_URI").expect("BASE_URI not set");
-    let token = std::env::var("MASTODON_ACCESS_TOKEN").expect("TOKEN not set");
-    let mastodon = Mastodon::new(&base_uri, &token);
-    mastodon.notifications("109035315460271106").await;
-}
