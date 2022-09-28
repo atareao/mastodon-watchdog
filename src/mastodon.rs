@@ -76,9 +76,8 @@ impl Mastodon{
     pub async fn notifications(&self, min_id: &str){
         let query = "atareao";
         //let url = format!("{}/api/v1/notifications?min_id={}&exclude_type=follow,favourite,reblog,poll,follow_request",
-        let url = format!("{}/api/v1/notifications?since_id={}",
+        let url = format!("{}/api/v1/notifications?exclude_types=follow,favourite,reblog,poll,follow_request",
             self.base_uri,
-            min_id
         );
         println!("{}", &url);
         let client = Client::new();
