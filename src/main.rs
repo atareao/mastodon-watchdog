@@ -27,39 +27,12 @@ async fn main() {
         .parse::<u64>()
         .unwrap();
     let mastodon_base_uri = env::var("MASTODON_BASE_URI").expect("Not found Mastodon Base Uri");
-    let mastodon_token = env::var("MASTODON_TOKEN").expect("Not found Mastodon token");
+    let mastodon_token = env::var("MASTODON_ACCESS_TOKEN").expect("Not found Mastodon token");
     let sleep_time = time::Duration::from_secs(sleep_time_in_seconds);
     let mastodon = Mastodon::new(&mastodon_base_uri, &mastodon_token);
-    //twitter.tweet("Hi from rust!!").await;
-    let res = true;
-    //if res.is_ok(){
-    if res{
-        //println!("{}", res.as_ref().unwrap());
-        //let mut response: Map<String,Value> = serde_json::from_str(res.as_ref().unwrap()).unwrap();
-        let mut response: Map<String,Value> = serde_json::from_str("").unwrap();
-        let mut statuses = response.get_mut("statuses").unwrap().as_array().unwrap().to_owned();
-        statuses.reverse();
-        for status in statuses {
-            //println!("{}", status);
-            let text = status.get("full_text").unwrap().as_str().unwrap();
-            let id = status.get("id_str").unwrap().as_str().unwrap();
-            let created_at = status.get("created_at").unwrap().as_str().unwrap();
-            let user = status.get("user").unwrap();
-            let name = user.get("name").unwrap().as_str().unwrap();
-            let screen_name = user.get("screen_name").unwrap().as_str().unwrap();
-            println!("==========");
-            println!("Text: {}", text);
-            println!("Id: {}", id);
-            println!("created_at: {}", created_at);
-            println!("Name: {}", name);
-            println!("Screen Name: {}", screen_name);
-
-        }
-    }
     loop {
         thread::sleep(sleep_time);
-        /*
-        match search(&twitter, &last_id).await{
+        match search(&url, &token, &mastodon, &last_id).await{
             Some(new_last_id) => {
                 config.last_id = new_last_id.to_string();
                 config.save(&FILENAME);
@@ -67,51 +40,50 @@ async fn main() {
             },
             _ => {},
         }
-            */
         println!("Esto es una prueba");
     }
 }
-/*
-async fn search(url: &str, token: &str, twitter: &Twitter, last_id: &str) -> Option<String>{
+async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str) -> Option<String>{
     let mut new_last_id: String = "".to_string();
-    let res = &twitter.get_mentions(&last_id).await;
+    let res = &mastodon.search(last_id).await;
     if res.is_ok(){
-        let mut response: Map<String,Value> = serde_json::from_str(res.as_ref().unwrap()).unwrap();
+        let mut response: Map<String,Value> = serde_json::from_str("").unwrap();
         let mut statuses = response.get_mut("statuses").unwrap().as_array().unwrap().to_owned();
         statuses.reverse();
         for status in statuses {
             //println!("{}", status);
-            let text = status.get("full_text").unwrap().as_str().unwrap();
-            new_last_id = status.get("id_str").unwrap().as_str().unwrap().to_string();
+            let content = status.get("content").unwrap().as_str().unwrap();
             let created_at = status.get("created_at").unwrap().as_str().unwrap();
-            let user = status.get("user").unwrap();
-            let name = user.get("name").unwrap().as_str().unwrap();
-            let screen_name = user.get("screen_name").unwrap().as_str().unwrap();
+            let id = status.get("id").unwrap().as_str().unwrap();
+            let account = status.get("account").unwrap();
+            let name = account.get("display_name").unwrap().as_str().unwrap();
+            let nickname = account.get("acct").unwrap().as_str().unwrap();
+            let _mentions = status.get("mentions").unwrap().as_array().unwrap();
             println!("==========");
-            println!("Text: {}", text);
-            println!("Id: {}", &new_last_id);
+            println!("Text: {}", content);
+            println!("Id: {}", id);
             println!("created_at: {}", created_at);
             println!("Name: {}", name);
-            println!("Screen Name: {}", screen_name);
-            if let Some(message) = check_key("idea", text){
-                let feedback = Feedback::new("idea", &new_last_id, text, name, screen_name, 0, "Twitter");
-                feedback.post(url, token);
-            }else if let Some(message) = check_key("pregunta", text){
-                let feedback = Feedback::new("pregunta", &new_last_id, text, name, screen_name, 0, "Twitter");
-                feedback.post(url, token);
-            }else if let Some(option) = check_comment("comentario", text){
+            println!("Screen Name: {}", nickname);
+            if let Some(message) = check_key("idea", content){
+                let feedback = Feedback::new("idea", &new_last_id, &message, name, nickname, 0, "Mastodon");
+                feedback.post(url, token).await;
+            }else if let Some(message) = check_key("pregunta", content){
+                let feedback = Feedback::new("pregunta", &new_last_id, &message, name, nickname, 0, "Mastodon");
+                feedback.post(url, token).await;
+            }else if let Some(option) = check_comment("comentario", content){
                 let (commentario, reference) = option;
                 if let Some(message) = commentario{
                     let id = match reference {
                         Some(value) => value,
                         None => new_last_id.clone(),
                     };
-                    let feedback = Feedback::new("comentario", &id, &message, name, screen_name, 0, "Twitter");
-                    feedback.post(url, token);
+                    let feedback = Feedback::new("comentario", &id, &message, name, nickname, 0, "Mastodon");
+                    feedback.post(url, token).await;
                 }
             }else{
-                let feedback = Feedback::new("mencion", &new_last_id, text, name, screen_name, 0, "Twitter");
-                feedback.post(url, token);
+                let feedback = Feedback::new("mencion", &new_last_id, content, name, nickname, 0, "Mastodon");
+                feedback.post(url, token).await;
             }
         }
     }
@@ -120,4 +92,3 @@ async fn search(url: &str, token: &str, twitter: &Twitter, last_id: &str) -> Opt
     }
     None
 }
-*/

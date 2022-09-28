@@ -37,7 +37,7 @@ impl Mastodon{
         println!("{:?}", response);
     }
 
-    pub async fn search(&self, min_id: &str){
+    pub async fn search(&self, min_id: &str) -> Result<String, reqwest::Error>{
         let query = "atareao";
         let url = format!("{}/api/v2/search?min_id={}&q={}&type=statuses",
             self.base_uri,
@@ -50,31 +50,10 @@ impl Mastodon{
             .get(&url)
             .header("Authorization", format!("Bearer {}", self.access_token))
             .send()
-            .await.unwrap()
+            .await?
             .text()
-            .await.unwrap();
-        let mut response: Map<String, Value> = serde_json::from_str(res.as_str()).unwrap();
-        println!("{:?}", response);
-        let statuses = response.get_mut("statuses").unwrap().as_array().unwrap().to_owned();
-        for status in statuses {
-            println!("==================");
-            println!("{:?}", status);
-            let content = status.get("content").unwrap().as_str().unwrap();
-            let created_at = status.get("created_at").unwrap().as_str().unwrap();
-            let id = status.get("id").unwrap().as_str().unwrap();
-            let account = status.get("account").unwrap();
-            let name = account.get("display_name").unwrap().as_str().unwrap();
-            let nickname = account.get("acct").unwrap().as_str().unwrap();
-            let mentions = status.get("mentions").unwrap().as_array().unwrap();
-            for mention in mentions{
-                println!("{}", mention);
-            }
-            println!("Id: {}", id);
-            println!("created_at: {}", created_at);
-            println!("content: {}", content);
-            println!("name: {}", name);
-            println!("nickname: {}", nickname);
-        }
+            .await?;
+        Ok(res)
     }
 
     pub async fn notifications(&self, min_id: &str){
