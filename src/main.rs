@@ -1,4 +1,4 @@
-mod twitter;
+mod mastodon;
 mod feedback;
 mod config;
 mod message;
@@ -6,7 +6,7 @@ mod message;
 use dotenv::dotenv;
 use std::{thread, time, env};
 use tokio;
-use crate::{twitter::Twitter, config::Config, feedback::Feedback};
+use crate::{mastodon::Mastodon, config::Config, feedback::Feedback};
 use serde_json::{Map, Value};
 use crate::message::{check_key, check_comment};
 
@@ -26,17 +26,17 @@ async fn main() {
         .expect("Not found SLEEP_TIME")
         .parse::<u64>()
         .unwrap();
-    let consumer_key = env::var("TW_CONSUMER_KEY").expect("Not foun consumer key");
-    let consumer_secret = env::var("TW_CONSUMER_SECRET").expect("Not found consumer secret");
-    let access_token = env::var("TW_ACCESS_TOKEN").expect("Not found access token");
-    let access_token_secret = env::var("TW_ACCESS_TOKEN_SECRET").expect("Not found access token secret");
+    let mastodon_base_uri = env::var("MASTODON_BASE_URI").expect("Not found Mastodon Base Uri");
+    let mastodon_token = env::var("MASTODON_TOKEN").expect("Not found Mastodon token");
     let sleep_time = time::Duration::from_secs(sleep_time_in_seconds);
-    let twitter = Twitter::new(&consumer_key, &consumer_secret, &access_token, &access_token_secret);
+    let mastodon = Mastodon::new(&mastodon_base_uri, &mastodon_token);
     //twitter.tweet("Hi from rust!!").await;
-    let res = &twitter.get_mentions(&last_id).await;
-    if res.is_ok(){
+    let res = true;
+    //if res.is_ok(){
+    if res{
         //println!("{}", res.as_ref().unwrap());
-        let mut response: Map<String,Value> = serde_json::from_str(res.as_ref().unwrap()).unwrap();
+        //let mut response: Map<String,Value> = serde_json::from_str(res.as_ref().unwrap()).unwrap();
+        let mut response: Map<String,Value> = serde_json::from_str("").unwrap();
         let mut statuses = response.get_mut("statuses").unwrap().as_array().unwrap().to_owned();
         statuses.reverse();
         for status in statuses {
@@ -58,6 +58,7 @@ async fn main() {
     }
     loop {
         thread::sleep(sleep_time);
+        /*
         match search(&twitter, &last_id).await{
             Some(new_last_id) => {
                 config.last_id = new_last_id.to_string();
@@ -66,10 +67,11 @@ async fn main() {
             },
             _ => {},
         }
+            */
         println!("Esto es una prueba");
     }
 }
-
+/*
 async fn search(url: &str, token: &str, twitter: &Twitter, last_id: &str) -> Option<String>{
     let mut new_last_id: String = "".to_string();
     let res = &twitter.get_mentions(&last_id).await;
@@ -118,3 +120,4 @@ async fn search(url: &str, token: &str, twitter: &Twitter, last_id: &str) -> Opt
     }
     None
 }
+*/
