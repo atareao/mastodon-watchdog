@@ -1,0 +1,9 @@
+GET {{MASTODON_BASE_URI}}/api/v2/search?q=atareao
+Authorization: Bearer {{MASTODON_ACCESS_TOKEN}}
+
+GET {{MASTODON_BASE_URI}}/api/v1/notifications?exclude_types[]=favourite&exclude_types[]=follow&exclude_types[]=reblog&exclude_types[]=poll&exclude_types[]=follow_request
+Authorization: Bearer {{MASTODON_ACCESS_TOKEN}}
+
+POST {{MASTODON_BASE_URI}}/api/v1/notifications/clear
+Authorization: Bearer {{MASTODON_ACCESS_TOKEN}}
+
