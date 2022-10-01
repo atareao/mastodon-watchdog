@@ -2,6 +2,7 @@ mod mastodon;
 mod feedback;
 mod config;
 mod message;
+mod mattermost;
 
 use dotenv::dotenv;
 use std::{thread, time, env};
@@ -17,8 +18,6 @@ const FILENAME: &str = "lastid.toml";
 async fn main() {
     dotenv().ok();
 
-    let mut config = Config::read("lastid.toml").expect("Can not read last id");
-    let mut last_id = config.get_last_id().to_string();
     let url = env::var("URL")
         .expect("Not found URL");
     let token = env::var("TOKEN")
@@ -33,21 +32,13 @@ async fn main() {
     let mastodon = Mastodon::new(&mastodon_base_uri, &mastodon_token);
     loop {
         thread::sleep(sleep_time);
-        match search(&url, &token, &mastodon, &last_id).await{
-            Some(new_last_id) => {
-                config.last_id = new_last_id.to_string();
-                config.save(&FILENAME);
-                last_id = new_last_id.to_string();
-            },
-            _ => {},
-        }
-        println!("Esto es una prueba");
+        search(&url, &token, &mastodon).await;
     }
 }
-async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str) -> Option<String>{
-    let res = &mastodon.notifications().await;
+async fn search(url: &str, token: &str, mastodon: &Mastodon){
+    let res = mastodon.notifications().await;
     if res.is_ok(){
-        let mut notifications: Vec<Value> = serde_json::from_str("").unwrap();
+        let notifications: Vec<Value> = serde_json::from_str(&res.unwrap()).unwrap();
         for notification in notifications {
             //println!("{}", status);
             let status = notification.get("status").unwrap();
@@ -88,5 +79,4 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str) -> O
         }
     }
     mastodon.clear_notifications().await;
-    None
 }
