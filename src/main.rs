@@ -45,8 +45,7 @@ async fn main() {
     }
 }
 async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str) -> Option<String>{
-    let mut new_last_id: String = "".to_string();
-    let res = &mastodon.search(last_id).await;
+    let res = &mastodon.notifications().await;
     if res.is_ok(){
         let mut response: Map<String,Value> = serde_json::from_str("").unwrap();
         let mut statuses = response.get_mut("statuses").unwrap().as_array().unwrap().to_owned();
