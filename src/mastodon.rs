@@ -10,6 +10,7 @@ pub struct Mastodon{
 #[derive(Serialize, Deserialize)]
 struct Message{
     status: String,
+    in_reply_to_id: Option<String>,
 }
 
 impl Mastodon{
@@ -20,11 +21,11 @@ impl Mastodon{
         }
     }
 
-    pub async fn post(&self, message: &str){
+    pub async fn post(&self, message: &str, in_reply_to_id: Option<String>){
         let url = format!("{}/api/v1/statuses", self.base_uri);
         println!("{}", &url);
         let client = Client::new();
-        let body = Message{status: message.to_string()};
+        let body = Message{status: message.to_string(), in_reply_to_id};
         let response = client
             .post(&url)
             .json(&body)
@@ -108,7 +109,7 @@ mod tests{
         let token = std::env::var("MASTODON_ACCESS_TOKEN").expect("TOKEN not set");
         println!("{}", &token);
         let mastodon = Mastodon::new(&base_uri, &token);
-        //mastodon.post("Sample").await;
+        mastodon.post("muchas gracias por tu idea @atareao", None).await;
     }
 
     #[actix_rt::test]

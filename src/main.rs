@@ -47,18 +47,16 @@ async fn main() {
 async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str) -> Option<String>{
     let res = &mastodon.notifications().await;
     if res.is_ok(){
-        let mut response: Map<String,Value> = serde_json::from_str("").unwrap();
-        let mut statuses = response.get_mut("statuses").unwrap().as_array().unwrap().to_owned();
-        statuses.reverse();
-        for status in statuses {
+        let mut notifications: Vec<Value> = serde_json::from_str("").unwrap();
+        for notification in notifications {
             //println!("{}", status);
+            let status = notification.get("status").unwrap();
             let content = status.get("content").unwrap().as_str().unwrap();
             let created_at = status.get("created_at").unwrap().as_str().unwrap();
             let id = status.get("id").unwrap().as_str().unwrap();
-            let account = status.get("account").unwrap();
-            let name = account.get("display_name").unwrap().as_str().unwrap();
+            let account = notification.get("account").unwrap();
+            let name = account.get("username").unwrap().as_str().unwrap();
             let nickname = account.get("acct").unwrap().as_str().unwrap();
-            let _mentions = status.get("mentions").unwrap().as_array().unwrap();
             println!("==========");
             println!("Text: {}", content);
             println!("Id: {}", id);
@@ -66,29 +64,29 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str) -> O
             println!("Name: {}", name);
             println!("Screen Name: {}", nickname);
             if let Some(message) = check_key("idea", content){
-                let feedback = Feedback::new("idea", &new_last_id, &message, name, nickname, 0, "Mastodon");
+                let feedback = Feedback::new("idea", &id, &message, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
+                let message = format!("Gracias por tu idea @{}", nickname);
+                mastodon.post(&message, Some(id.to_string())).await;
             }else if let Some(message) = check_key("pregunta", content){
-                let feedback = Feedback::new("pregunta", &new_last_id, &message, name, nickname, 0, "Mastodon");
+                let feedback = Feedback::new("pregunta", &id, &message, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
+                let message = format!("Gracias por tu pregunta @{}", nickname);
+                mastodon.post(&message, Some(id.to_string())).await;
             }else if let Some(option) = check_comment("comentario", content){
                 let (commentario, reference) = option;
                 if let Some(message) = commentario{
-                    let id = match reference {
-                        Some(value) => value,
-                        None => new_last_id.clone(),
-                    };
                     let feedback = Feedback::new("comentario", &id, &message, name, nickname, 0, "Mastodon");
                     feedback.post(url, token).await;
+                    let message = format!("Gracias por tu comentario @{}", nickname);
+                    mastodon.post(&message, Some(id.to_string())).await;
                 }
             }else{
-                let feedback = Feedback::new("mencion", &new_last_id, content, name, nickname, 0, "Mastodon");
+                let feedback = Feedback::new("mencion", &id, content, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
             }
         }
     }
-    if new_last_id != "" && new_last_id != last_id{
-        return Some(new_last_id);
-    }
+    mastodon.clear_notifications().await;
     None
 }
