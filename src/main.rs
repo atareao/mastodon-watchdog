@@ -3,6 +3,7 @@ mod feedback;
 mod config;
 mod message;
 mod mattermost;
+use html2md::parse_html;
 
 use dotenv::dotenv;
 use std::{thread, time, env};
@@ -69,13 +70,15 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon,
                 feedback.post(url, token).await;
                 let thanks_message = format!("Gracias por tu idea @{}", nickname);
                 mastodon.post(&thanks_message, Some(id.to_string())).await;
-                mattermost.post_message(idea_channel, &message, None).await;
+                mattermost.post_message(idea_channel, &parse_html(&message), None).await;
+                mastodon.clear_notifications().await;
             }else if let Some(message) = check_key("pregunta", content){
                 let feedback = Feedback::new("pregunta", &id, &message, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
                 let thanks_message = format!("Gracias por tu pregunta @{}", nickname);
                 mastodon.post(&thanks_message, Some(id.to_string())).await;
-                mattermost.post_message(pregunta_channel, &message, None).await;
+                mattermost.post_message(pregunta_channel, &parse_html(&message), None).await;
+                mastodon.clear_notifications().await;
             }else if let Some(option) = check_comment("comentario", content){
                 let (commentario, reference) = option;
                 if let Some(message) = commentario{
@@ -83,14 +86,15 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon,
                     feedback.post(url, token).await;
                     let thanks_message = format!("Gracias por tu comentario @{}", nickname);
                     mastodon.post(&thanks_message, Some(id.to_string())).await;
-                    mattermost.post_message(comentario_channel, &message, None).await;
+                    mattermost.post_message(comentario_channel, &parse_html(&message), None).await;
+                    mastodon.clear_notifications().await;
                 }
             }else{
                 let feedback = Feedback::new("mencion", &id, content, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
-                mattermost.post_message(mencion_channel, &content, None).await;
+                mattermost.post_message(mencion_channel, &parse_html(&content), None).await;
+                mastodon.clear_notifications().await;
             }
         }
     }
-    mastodon.clear_notifications().await;
 }
