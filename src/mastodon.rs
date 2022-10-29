@@ -42,8 +42,6 @@ impl Mastodon{
             ("q", "atareao"),
             ("type", "statuses")
         ];
-        println!("========");
-        println!("{}", &url);
         let client = Client::new();
         let res = client
             .get(url)
@@ -102,6 +100,7 @@ mod tests{
     use crate::Mastodon;
     use dotenv::dotenv;
 
+    /*
     #[actix_rt::test]
     async fn name() {
         dotenv().ok();
@@ -111,6 +110,7 @@ mod tests{
         let mastodon = Mastodon::new(&base_uri, &token);
         mastodon.post("muchas gracias por tu idea @atareao", None).await;
     }
+    */
 
     #[actix_rt::test]
     async fn search() {
@@ -123,6 +123,7 @@ mod tests{
         let res = mastodon.search("0").await.unwrap();
         println!("{}", res);
     }
+    /*
 
     #[actix_rt::test]
     async fn notifications() {
@@ -147,4 +148,5 @@ mod tests{
         let res = mastodon.clear_notifications().await.unwrap();
         println!("{:?}", res);
     }
+    */
 }

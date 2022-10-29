@@ -8,8 +8,9 @@ use html2md::parse_html;
 use dotenv::dotenv;
 use std::{thread, time, env};
 use tokio;
-use crate::{mastodon::Mastodon, mattermost::Mattermost, feedback::Feedback};
-use serde_json::{Map, Value};
+use crate::{mastodon::Mastodon, mattermost::Mattermost, config::Config,
+            feedback::Feedback};
+use serde_json::Value;
 use crate::message::{check_key, check_comment};
 
 const FILENAME: &str = "lastid.toml";
@@ -19,6 +20,8 @@ const FILENAME: &str = "lastid.toml";
 async fn main() {
     dotenv().ok();
 
+    let mut config = Config::read("lastid.toml").expect("Can not read last id");
+    let mut last_id = config.get_last_id().to_string();
     let url = env::var("URL")
         .expect("Not found URL");
     let token = env::var("TOKEN")
@@ -39,62 +42,71 @@ async fn main() {
     let comentario_channel = mattermost.get_channel_by_name("atareao_comentario").await.unwrap();
     let mencion_channel = mattermost.get_channel_by_name("atareao_mencion").await.unwrap();
     loop {
+        match search(&url, &token, &mastodon, &last_id, &mattermost,
+                     &idea_channel, &pregunta_channel, &comentario_channel,
+                     &mencion_channel).await{
+                Some(new_last_id) => {
+                    config.last_id = new_last_id.to_string();
+                    config.save(&FILENAME);
+                    last_id = new_last_id.to_string();
+                },
+                _ => {},
+            }
         thread::sleep(sleep_time);
-        search(&url, &token, &mastodon, &mattermost, &idea_channel,
-            &pregunta_channel, &comentario_channel, &mencion_channel).await;
     }
 }
-async fn search(url: &str, token: &str, mastodon: &Mastodon,
+async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str,
         mattermost: &Mattermost, idea_channel: &str, pregunta_channel: &str,
-        comentario_channel: &str, mencion_channel: &str){
-    let res = mastodon.notifications().await;
+        comentario_channel: &str, mencion_channel: &str) -> Option<String>{
+    let mut new_last_id: String = "".to_string();
+    let res = mastodon.search(last_id).await;
     if res.is_ok(){
-        let notifications: Vec<Value> = serde_json::from_str(&res.unwrap()).unwrap();
-        for notification in notifications {
+        let data: Value = serde_json::from_str(&res.unwrap()).unwrap();
+        let statuses: Vec<Value> = data.get("statuses").unwrap().as_array().unwrap().to_vec();
+        for status in statuses {
             //println!("{}", status);
-            let status = notification.get("status").unwrap();
             let content = status.get("content").unwrap().as_str().unwrap();
             let created_at = status.get("created_at").unwrap().as_str().unwrap();
-            let id = status.get("id").unwrap().as_str().unwrap();
-            let account = notification.get("account").unwrap();
+            new_last_id = status.get("id").unwrap().as_str().unwrap().to_string();
+            let account = status.get("account").unwrap();
             let name = account.get("username").unwrap().as_str().unwrap();
             let nickname = account.get("acct").unwrap().as_str().unwrap();
             println!("==========");
-            println!("Text: {}", content);
-            println!("Id: {}", id);
+            println!("Text: {}", parse_html(content));
+            println!("Id: {}", &new_last_id);
             println!("created_at: {}", created_at);
             println!("Name: {}", name);
             println!("Screen Name: {}", nickname);
             if let Some(message) = check_key("idea", content){
-                let feedback = Feedback::new("idea", &id, &message, name, nickname, 0, "Mastodon");
+                let feedback = Feedback::new("idea", &new_last_id, &message, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
                 let thanks_message = format!("Gracias por tu idea @{}", nickname);
-                mastodon.post(&thanks_message, Some(id.to_string())).await;
+                mastodon.post(&thanks_message, Some(new_last_id.to_string())).await;
                 mattermost.post_message(idea_channel, &parse_html(&message), None).await;
-                mastodon.clear_notifications().await;
             }else if let Some(message) = check_key("pregunta", content){
-                let feedback = Feedback::new("pregunta", &id, &message, name, nickname, 0, "Mastodon");
+                let feedback = Feedback::new("pregunta", &new_last_id, &message, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
                 let thanks_message = format!("Gracias por tu pregunta @{}", nickname);
-                mastodon.post(&thanks_message, Some(id.to_string())).await;
+                mastodon.post(&thanks_message, Some(new_last_id.to_string())).await;
                 mattermost.post_message(pregunta_channel, &parse_html(&message), None).await;
-                mastodon.clear_notifications().await;
             }else if let Some(option) = check_comment("comentario", content){
                 let (commentario, reference) = option;
                 if let Some(message) = commentario{
-                    let feedback = Feedback::new("comentario", &id, &message, name, nickname, 0, "Mastodon");
+                    let feedback = Feedback::new("comentario", &new_last_id, &message, name, nickname, 0, "Mastodon");
                     feedback.post(url, token).await;
                     let thanks_message = format!("Gracias por tu comentario @{}", nickname);
-                    mastodon.post(&thanks_message, Some(id.to_string())).await;
+                    mastodon.post(&thanks_message, Some(new_last_id.to_string())).await;
                     mattermost.post_message(comentario_channel, &parse_html(&message), None).await;
-                    mastodon.clear_notifications().await;
                 }
             }else{
-                let feedback = Feedback::new("mencion", &id, content, name, nickname, 0, "Mastodon");
+                let feedback = Feedback::new("mencion", &new_last_id, content, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
                 mattermost.post_message(mencion_channel, &parse_html(&content), None).await;
-                mastodon.clear_notifications().await;
             }
         }
     }
+    if new_last_id != "" && new_last_id != last_id{
+        return Some(new_last_id);
+    }
+    None
 }
