@@ -35,7 +35,7 @@ RUN cargo build  --target x86_64-unknown-linux-musl --release
 ###############################################################################
 FROM alpine:3.16
 
-ARG APP=mastodon-watchdog
+ENV APP=mastodon-watchdog
 
 RUN apk add --update --no-cache \
             su-exec~=0.2 \
@@ -51,4 +51,4 @@ COPY entrypoint.sh /app/
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/$APP /app/
 
 ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
-CMD ["/app/mastodon-watchdog"]
+CMD "/app/${APP}"
