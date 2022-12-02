@@ -10,7 +10,7 @@ use std::{thread, time, env};
 use tokio;
 use crate::{mastodon::Mastodon, mattermost::Mattermost, config::Config,
             feedback::Feedback};
-use serde_json::Value;
+use serde_json::{Value, json};
 use crate::message::{check_key, check_comment};
 
 const FILENAME: &str = "lastid.toml";
@@ -61,7 +61,10 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str,
     let mut new_last_id: String = "".to_string();
     let res = mastodon.search(last_id).await;
     if res.is_ok(){
-        let data: Value = serde_json::from_str(&res.unwrap()).unwrap();
+        let data: Value =  match serde_json::from_str(&res.unwrap()){
+            Ok(value) => value,
+            Err(_) => json!({"statuses": []}),
+        };
         let statuses: Vec<Value> = data.get("statuses").unwrap().as_array().unwrap().to_vec();
         for status in statuses {
             //println!("{}", status);
