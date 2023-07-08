@@ -66,6 +66,11 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str,
     let mut new_last_id: String = "".to_string();
     let res = mastodon.search(last_id).await;
     if res.is_ok(){
+        zinc.publish(&json!([{
+            "src": "Mastodon",
+            "type": "search",
+            "message": res.as_ref().unwrap(),
+        }])).await.unwrap();
         let data: Value =  match serde_json::from_str(&res.unwrap()){
             Ok(value) => value,
             Err(_) => json!({"statuses": []}),
@@ -140,6 +145,12 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, last_id: &str,
                 }])).await.unwrap();
             }
         }
+    }else{
+        zinc.publish(&json!([{
+            "src": "Mastodon",
+            "type": "search",
+            "message": "Something goes wrong!!",
+        }])).await.unwrap();
     }
     if new_last_id != "" && new_last_id != last_id{
         return Some(new_last_id);
