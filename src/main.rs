@@ -3,6 +3,7 @@ mod feedback;
 mod config;
 mod message;
 mod mattermost;
+mod zinc;
 use html2md::parse_html;
 
 use dotenv::dotenv;
