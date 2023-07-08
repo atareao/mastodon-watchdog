@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2022 Lorenzo Carbonell <a.k.a. atareao>
@@ -23,7 +23,6 @@
 
 # Exit if any command fails
 set -o errexit
-set -o pipefail
 set -o nounset
 
 LOCAL_USER_ID=${LOCAL_USER_ID:-1000}
