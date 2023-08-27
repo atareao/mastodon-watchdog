@@ -35,8 +35,10 @@ impl Mastodon{
         println!("{:?}", response);
     }
 
+    #[allow(unused)]
     pub async fn search(&self, min_id: &str) -> Result<String, reqwest::Error>{
         let url = format!("{}/api/v2/search/", self.base_uri);
+        println!("{}", &url);
         let params = [
             ("min_id", min_id),
             ("q", "atareao"),
@@ -53,7 +55,27 @@ impl Mastodon{
             .await?;
         Ok(res)
     }
+    pub async fn notifications(&self, since_id: &str) -> Result<String, reqwest::Error>{
+        let url = format!("{}/api/v1/notifications/", self.base_uri);
+        println!("{}", &url);
+        let params = [
+            ("types[]", "mention"),
+            ("since_id", since_id)
+        ];
+        let client = Client::new();
+        let res = client
+            .get(url)
+            .query(&params)
+            .header("Authorization", format!("Bearer {}", self.access_token))
+            .send()
+            .await?
+            .text()
+            .await?;
+        Ok(res)
 
+    }
+
+    #[allow(unused)]
     pub async fn clear_notifications(&self) -> Result<String, reqwest::Error>{
         let url = format!("{}/api/v1/notifications/clear",
             self.base_uri,
@@ -68,30 +90,6 @@ impl Mastodon{
             .await?;
         Ok(res)
 
-    }
-
-    pub async fn notifications(&self) -> Result<String, reqwest::Error>{
-        let url = format!("{}/api/v1/notifications",
-            self.base_uri,
-        );
-        println!("{}", &url);
-        let params = [
-            ("exclude_types[]", "follow"),
-            ("exclude_types[]", "favourite"),
-            ("exclude_types[]", "reblog"),
-            ("exclude_types[]", "poll"),
-            ("exclude_types[]", "follow_request"),
-        ];
-        let client = Client::new();
-        let res = client
-            .get(&url)
-            .query(&params)
-            .header("Authorization", format!("Bearer {}", self.access_token))
-            .send()
-            .await?
-            .text()
-            .await?;
-        Ok(res)
     }
 }
 
@@ -112,7 +110,7 @@ mod tests{
     }
     */
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn search() {
         dotenv().ok();
         let base_uri = std::env::var("MASTODON_BASE_URI").expect("BASE_URI not set");
@@ -120,12 +118,25 @@ mod tests{
         println!("{}", base_uri);
         println!("{}", token);
         let mastodon = Mastodon::new(&base_uri, &token);
-        let res = mastodon.search("0").await.unwrap();
+        let id = "110758642668166239";
+        let res = mastodon.search(id).await.unwrap();
+        println!("{}", res);
+    }
+
+    #[tokio::test]
+    async fn notifications() {
+        dotenv().ok();
+        let base_uri = std::env::var("MASTODON_BASE_URI").expect("BASE_URI not set");
+        let token = std::env::var("MASTODON_ACCESS_TOKEN").expect("TOKEN not set");
+        println!("{}", base_uri);
+        println!("{}", token);
+        let mastodon = Mastodon::new(&base_uri, &token);
+        let res = mastodon.notifications("0").await.unwrap();
         println!("{}", res);
     }
     /*
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn notifications() {
         dotenv().ok();
         let base_uri = std::env::var("MASTODON_BASE_URI").expect("BASE_URI not set");
@@ -137,7 +148,7 @@ mod tests{
         println!("{:?}", res);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn notifications_clear() {
         dotenv().ok();
         let base_uri = std::env::var("MASTODON_BASE_URI").expect("BASE_URI not set");
