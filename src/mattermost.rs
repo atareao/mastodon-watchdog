@@ -17,57 +17,6 @@ impl Mattermost{
         }
     }
 
-    pub async fn check_team(&self, name: &str)-> Result<String, Error>{
-        let url = format!("{}/api/v4/teams/{}/exists", self.base_uri, name);
-        self.get(&url).await
-    }
-
-    pub async fn create_outgoing_webhook(&self, team_id: &str, display_name: &str, words: Vec<&str>) -> Result<Response, Error>{
-        let url = format!("{}/api/v4/hooks/outgoing", self.base_uri);
-        let body = json!({
-                "team_id": team_id,
-                "display_name": display_name,
-                "trigger_words": words
-            });
-        self.post(&url, Some(body)).await
-    }
-    pub async fn create_incoming_webhook(&self, team_id: &str, display_name: &str) -> Result<Response, Error>{
-        let url = format!("{}/api/v4/hooks/incoming", self.base_uri);
-        let body = json!({
-                "team_id": team_id,
-                "display_name": display_name
-            });
-        self.post(&url, Some(body)).await
-    }
-    pub async fn create_channel(&self, team_id: &str, name: &str, display_name: &str, private: bool) -> Result<Response, Error>{
-        let url = format!("{}/api/v4/channels", self.base_uri);
-        let body = json!({
-                "team_id": team_id,
-                "name": name,
-                "display_name": display_name,
-                "type": if private {"p"} else {"o"}
-            });
-        self.post(&url, Some(body)).await
-    }
-    pub async fn create_team(&self, name: &str, display_name: &str, private: bool) -> Result<Response, Error>{
-        let url = format!("{}/api/v4/teams", self.base_uri);
-        let body = json!({
-                "name": name,
-                "display_name": display_name,
-                "type": if private {"i"} else {"o"}
-            });
-        self.post(&url, Some(body)).await
-    }
-    pub async fn create_user(&self, username: &str, email: &str, password: &str) -> Result<Response, Error>{
-        let url = format!("{}/api/v4/users", self.base_uri);
-        let body = json!({
-                "username": username,
-                "email": email,
-                "password": password
-            });
-        self.post(&url, Some(body)).await
-    }
-
     pub async fn post_message(&self, channel_id: &str, message: &str, root_id: Option<&str>) -> Result<Response, Error>{
         let url = format!("{}/api/v4/posts", self.base_uri);
         let body = if let Some(value) = root_id{
@@ -83,31 +32,6 @@ impl Mattermost{
             })
         };
         self.post(&url, Some(body)).await
-    }
-
-    pub async fn list_outgoing_webhooks(&self) -> Result<String, Error>{
-        let url = format!("{}/api/v4/hooks/outgoing", self.base_uri);
-        self.get(&url).await
-    }
-
-    pub async fn list_incoming_webhooks(&self) -> Result<String, Error>{
-        let url = format!("{}/api/v4/hooks/incoming", self.base_uri);
-        self.get(&url).await
-    }
-
-    pub async fn list_roles(&self) -> Result<String, Error>{
-        let url = format!("{}/api/v4/roles", self.base_uri);
-        self.get(&url).await
-    }
-
-    pub async fn list_teams(&self) -> Result<String, Error>{
-        let url = format!("{}/api/v4/teams", self.base_uri);
-        self.get(&url).await
-    }
-
-    pub async fn list_users(&self) ->Result<String, Error>{
-        let url = format!("{}/api/v4/users", self.base_uri);
-        self.get(&url).await
     }
 
     pub async fn list_channels(&self) ->Result<Vec<Value>, Error>{
@@ -171,7 +95,7 @@ mod tests{
     use crate::mattermost::Mattermost;
     use dotenv::dotenv;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_channels() {
         dotenv().ok();
         let base_uri = std::env::var("MATTERMOST_BASE_URI").expect("BASE_URI not set");
@@ -184,7 +108,7 @@ mod tests{
         }
         println!("{:?}", res);
     }
-    #[actix_rt::test]
+    #[tokio::test]
     async fn find_channel() {
         dotenv().ok();
         let base_uri = std::env::var("MATTERMOST_BASE_URI").expect("BASE_URI not set");
@@ -194,7 +118,7 @@ mod tests{
         let res = mattermost.get_channel_by_name("correo").await;
         println!("{:?}", res);
     }
-    #[actix_rt::test]
+    #[tokio::test]
     async fn post_message() {
         dotenv().ok();
         let base_uri = std::env::var("MATTERMOST_BASE_URI").expect("BASE_URI not set");
