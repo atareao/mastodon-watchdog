@@ -2,7 +2,6 @@ mod mastodon;
 mod feedback;
 mod config;
 mod message;
-mod mattermost;
 mod matrix;
 mod zinc;
 use html2md::parse_html;
@@ -10,8 +9,8 @@ use html2md::parse_html;
 use dotenv::dotenv;
 use std::{thread, time, env};
 use tokio;
-use crate::{mastodon::Mastodon, mattermost::Mattermost, config::Config,
-            feedback::Feedback, zinc::Zinc, matrix::Matrix};
+use crate::{mastodon::Mastodon, config::Config, feedback::Feedback, zinc::Zinc,
+    matrix::Matrix};
 use serde_json::{Value, json};
 use crate::message::{check_key, check_comment};
 
@@ -36,13 +35,6 @@ async fn main() {
     let mastodon_base_uri = env::var("MASTODON_BASE_URI").expect("Not found Mastodon Base Uri");
     let mastodon_token = env::var("MASTODON_ACCESS_TOKEN").expect("Not found Mastodon token");
     let mastodon = Mastodon::new(&mastodon_base_uri, &mastodon_token);
-    let mattermost_base_uri = env::var("MATTERMOST_BASE_URI").expect("Not found Mattermost Base Uri");
-    let mattermost_token = env::var("MATTERMOST_ACCESS_TOKEN").expect("Not found Mattermost token");
-    let mattermost = Mattermost::new(&mattermost_base_uri, &mattermost_token);
-    let idea_channel = mattermost.get_channel_by_name("atareao_idea").await.unwrap();
-    let pregunta_channel = mattermost.get_channel_by_name("atareao_pregunta").await.unwrap();
-    let comentario_channel = mattermost.get_channel_by_name("atareao_comentario").await.unwrap();
-    let mencion_channel = mattermost.get_channel_by_name("atareao_mencion").await.unwrap();
     let matrix_base_url = env::var("MATRIX_BASE_URL").expect("Not found Matrix base url");
     let matrix_token = env::var("MATRIX_TOKEN").expect("Not found Matrix token");
     let matrix_room_id = env::var("MATRIX_ROOM_ID").expect("Not found Matrix room_id");
@@ -54,8 +46,7 @@ async fn main() {
     let zinc = Zinc::new(&zinc_base_url, &zinc_indice, &zinc_token);
     loop {
         match search(&url, &token, &mastodon, &matrix, &matrix_room_id,
-                     &last_id, &mattermost, &idea_channel, &pregunta_channel,
-                     &comentario_channel, &mencion_channel, &zinc).await{
+                     &last_id, &zinc).await{
                 Some(new_last_id) => {
                     config.last_id = new_last_id.to_string();
                     println!("Save: {:?}", config.save(&FILENAME));
@@ -67,9 +58,7 @@ async fn main() {
     }
 }
 async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix, 
-        room_id: &str, last_id: &str,
-        mattermost: &Mattermost, idea_channel: &str, pregunta_channel: &str,
-        comentario_channel: &str, mencion_channel: &str, zinc: &Zinc) -> Option<String>{
+        room_id: &str, last_id: &str, zinc: &Zinc) -> Option<String>{
     let mut new_last_id: String = "".to_string();
     let res = mastodon.notifications(last_id).await;
     //let res = mastodon.search(last_id).await;
@@ -81,7 +70,7 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
         }])).await.unwrap();
         let data: Value =  match serde_json::from_str(&res.unwrap()){
             Ok(value) => value,
-            Err(_) => json!({"statuses": []}),
+            Err(_) => json!([]),
         };
         //let statuses: Vec<Value> = data.get("statuses").unwrap().as_array().unwrap().to_vec();
         let mentions: Vec<Value> = data.as_array().unwrap().to_vec();
@@ -115,7 +104,6 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &content
                 );
                 println!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
-                println!("Response: {:?}", mattermost.post_message(idea_channel, &mm_message, None).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "idea",
@@ -135,7 +123,6 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &content
                 );
                 println!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
-                println!("Response: {:?}", mattermost.post_message(pregunta_channel, &mm_message, None).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "pregunta",
@@ -157,7 +144,6 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &content
                 );
                 println!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
-                println!("Response: {:?}", mattermost.post_message(comentario_channel, &mm_message, None).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "comentario",
@@ -176,7 +162,6 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &content
                 );
                 println!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
-                println!("Response: {:?}", mattermost.post_message(mencion_channel, &mm_message, None).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "mencion",
