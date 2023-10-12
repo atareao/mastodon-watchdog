@@ -7,12 +7,18 @@ mod zinc;
 use html2md::parse_html;
 
 use dotenv::dotenv;
-use std::{thread, time, env};
+use std::{thread, time, env, str::FromStr};
+use tracing_subscriber::{
+    EnvFilter,
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
+};
 use tokio;
 use crate::{mastodon::Mastodon, config::Config, feedback::Feedback, zinc::Zinc,
     matrix::Matrix};
 use serde_json::{Value, json};
 use crate::message::{check_key, check_comment};
+use tracing::{debug, error};
 
 const FILENAME: &str = "lastid.toml";
 
@@ -20,6 +26,11 @@ const FILENAME: &str = "lastid.toml";
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    let log_level = env::var("LOG_LEVEL").unwrap_or("DEBUG".to_string());
+    tracing_subscriber::registry()
+        .with(EnvFilter::from_str(&log_level).unwrap())
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
     let mut config = Config::read("lastid.toml").expect("Can not read last id");
     let mut last_id = config.get_last_id().to_string();
@@ -49,7 +60,7 @@ async fn main() {
                      &last_id, &zinc).await{
                 Some(new_last_id) => {
                     config.last_id = new_last_id.to_string();
-                    println!("Save: {:?}", config.save(&FILENAME));
+                    debug!("Save: {:?}", config.save(&FILENAME));
                     last_id = new_last_id.to_string();
                 },
                 _ => {},
@@ -63,12 +74,19 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
     let res = mastodon.notifications(last_id).await;
     //let res = mastodon.search(last_id).await;
     if res.is_ok(){
-        zinc.publish(&json!([{
+        let message = match res {
+            Ok(value) => value,
+            Err(e) => format!("Error: {}", e.to_string()),
+        };
+        match zinc.publish(&json!([{
             "src": "Mastodon",
             "type": "search",
-            "message": res.as_ref().unwrap(),
-        }])).await.unwrap();
-        let data: Value =  match serde_json::from_str(&res.unwrap()){
+            "message": &message,
+        }])).await{
+                Ok(response) => debug!("Response: {:?}", response),
+                Err(e) => error!("Error: {:?}", e),
+            };
+        let data: Value =  match serde_json::from_str(&message){
             Ok(value) => value,
             Err(_) => json!([]),
         };
@@ -85,12 +103,12 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
             let account = mention.get("account").unwrap();
             let name = account.get("username").unwrap().as_str().unwrap();
             let nickname = account.get("acct").unwrap().as_str().unwrap();
-            println!("==========");
-            println!("Text: {}", parse_html(content));
-            println!("Id: {}", &new_last_id);
-            println!("created_at: {}", created_at);
-            println!("Name: {}", name);
-            println!("Screen Name: {}", nickname);
+            debug!("==========");
+            debug!("Text: {}", parse_html(content));
+            debug!("Id: {}", &new_last_id);
+            debug!("created_at: {}", created_at);
+            debug!("Name: {}", name);
+            debug!("Screen Name: {}", nickname);
             if let Some(message) = check_key("idea", content){
                 let feedback = Feedback::new("idea", &new_last_id, &message, name, nickname, 0, "Mastodon");
                 feedback.post(url, token).await;
@@ -103,7 +121,7 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &nickname,
                     &content
                 );
-                println!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
+                debug!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "idea",
@@ -122,7 +140,7 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &nickname,
                     &content
                 );
-                println!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
+                debug!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "pregunta",
@@ -143,7 +161,7 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &nickname,
                     &content
                 );
-                println!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
+                debug!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "comentario",
@@ -161,7 +179,7 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &nickname,
                     &content
                 );
-                println!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
+                debug!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "mencion",

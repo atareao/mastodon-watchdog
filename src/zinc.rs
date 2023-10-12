@@ -29,7 +29,6 @@ impl Zinc{
     }
 
     async fn post(&self, url: &str, body: &Value)->Result<Response, CustomError>{
-        println!("URL: {}", url);
         let mut header_map = HeaderMap::new();
         header_map.insert(HeaderName::from_str("Content-type").unwrap(),
                           HeaderValue::from_str("application/json").unwrap());

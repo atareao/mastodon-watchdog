@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use reqwest::Client;
+use tracing::{debug, error};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Feedback{
@@ -27,7 +28,7 @@ impl Feedback{
 
     }
     pub async fn post(&self, url: &str, token: &str){
-        println!("{}", url);
+        debug!("{}", url);
         match Client::new()
             .post(url)
             .header(reqwest::header::AUTHORIZATION, format!("Bearer {}", &token))
@@ -35,10 +36,10 @@ impl Feedback{
             .send()
             .await{
                 Ok(response) => {
-                    println!("Mensaje envíado: {}", response.status().to_string());
+                    debug!("Mensaje envíado: {}", response.status().to_string());
                 },
                 Err(error) => {
-                    println!("No he podido enviar el mensaje: {}",error.to_string());
+                    error!("No he podido enviar el mensaje: {}",error.to_string());
                 },
             };
     }

@@ -2,6 +2,7 @@ use toml;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::fs;
+use tracing::{debug, info, error};
 
 #[derive(Deserialize, Serialize)]
 pub struct Config{
@@ -16,14 +17,17 @@ impl Config {
     pub fn read(filename: &str) -> Result<Config, std::io::Error>{
         if Path::new(filename).exists(){
             let data = fs::read_to_string(filename).unwrap();
-            println!("{}", data);
+            info!("{}", data);
             let config: Config = toml::from_str(&data).unwrap();
             return Ok(config);
         }else{
             let config = Self::new("0");
             match config.save(filename){
                 Ok(()) => return Ok(config),
-                Err(e) => Err(e),
+                Err(e) => {
+                    error!("Error: {}", e);
+                    Err(e)
+                },
             }
         }
     }

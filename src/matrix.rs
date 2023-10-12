@@ -5,6 +5,7 @@ use reqwest::Error;
 use std::str::FromStr;
 use urlencoding::encode;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tracing::debug;
 
 pub struct Matrix{
     base_url: String,
@@ -46,7 +47,7 @@ impl Matrix{
 
     #[allow(unused)]
     async fn post(&self, url: &str, body: Option<Value>)->Result<Response, Error>{
-        println!("URL: {}", url);
+        debug!("URL: {}", url);
         let mut header_map = HeaderMap::new();
         header_map.insert(HeaderName::from_str("Content-type").unwrap(),
                           HeaderValue::from_str("application/json").unwrap());

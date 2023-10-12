@@ -1,6 +1,7 @@
 use reqwest::Client;
 use std::format;
 use serde::{Serialize, Deserialize};
+use tracing::debug;
 
 pub struct Mastodon{
     base_uri: String,
@@ -23,7 +24,7 @@ impl Mastodon{
 
     pub async fn post(&self, message: &str, in_reply_to_id: Option<String>){
         let url = format!("{}/api/v1/statuses", self.base_uri);
-        println!("{}", &url);
+        debug!("{}", &url);
         let client = Client::new();
         let body = Message{status: message.to_string(), in_reply_to_id};
         let response = client
@@ -32,13 +33,13 @@ impl Mastodon{
             .header("Authorization", format!("Bearer {}", self.access_token))
             .send()
             .await;
-        println!("{:?}", response);
+        debug!("{:?}", response);
     }
 
     #[allow(unused)]
     pub async fn search(&self, min_id: &str) -> Result<String, reqwest::Error>{
         let url = format!("{}/api/v2/search/", self.base_uri);
-        println!("{}", &url);
+        debug!("{}", &url);
         let params = [
             ("min_id", min_id),
             ("q", "atareao"),
@@ -57,7 +58,7 @@ impl Mastodon{
     }
     pub async fn notifications(&self, since_id: &str) -> Result<String, reqwest::Error>{
         let url = format!("{}/api/v1/notifications/", self.base_uri);
-        println!("{}", &url);
+        debug!("{}", &url);
         let params = [
             ("types[]", "mention"),
             ("since_id", since_id)
