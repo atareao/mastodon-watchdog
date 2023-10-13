@@ -84,7 +84,10 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
             "message": &message,
         }])).await{
                 Ok(response) => debug!("Response: {:?}", response),
-                Err(e) => error!("Error: {:?}", e),
+                Err(e) => {
+                    error!("Message: {}", message);
+                    error!("Error: {:?}", e)
+                },
             };
         let data: Value =  match serde_json::from_str(&message){
             Ok(value) => value,

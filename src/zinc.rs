@@ -46,7 +46,9 @@ impl Zinc{
                 if res.status() == StatusCode::OK{
                     Ok(res)
                 }else{
-                    let msg = "Esto es un error".to_string();
+                    let status = res.status().as_u16();
+                    let message = res.text().await.unwrap();
+                    let msg = format!("Error. Code {}. {}", status, message);
                     Err(CustomError::MessageError(msg))
                 }
 
