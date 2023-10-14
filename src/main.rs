@@ -183,12 +183,15 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &content
                 );
                 debug!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
-                zinc.publish(&json!([{
+                match zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "mencion",
                     "from": format!("@{}", &nickname),
                     "message": &parse_html(&content),
-                }])).await.unwrap();
+                }])).await{
+                        Ok(res) => debug!("{}", res.text().await.unwrap()),
+                        Err(e) => error!("Error: {:?}", e),
+                    }
             }
         }
     }else{
