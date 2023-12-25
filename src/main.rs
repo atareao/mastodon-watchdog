@@ -1,9 +1,4 @@
-mod mastodon;
-mod feedback;
-mod config;
-mod message;
-mod matrix;
-mod zinc;
+mod models;
 use html2md::parse_html;
 
 use dotenv::dotenv;
@@ -13,11 +8,16 @@ use tracing_subscriber::{
     layer::SubscriberExt,
     util::SubscriberInitExt,
 };
-use tokio;
-use crate::{mastodon::Mastodon, config::Config, feedback::Feedback, zinc::Zinc,
-    matrix::Matrix};
+use models::{
+    Config,
+    Feedback,
+    Zinc,
+    Mastodon,
+    Matrix,
+    check_comment,
+    check_key,
+};
 use serde_json::{Value, json};
-use crate::message::{check_key, check_comment};
 use tracing::{debug, error};
 
 const FILENAME: &str = "lastid.toml";
@@ -111,28 +111,68 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
             debug!("Screen Name: {}", nickname);
             if let Some(message) = check_key("idea", content){
                 let feedback = Feedback::new("idea", &new_last_id, &message, name, nickname, 0, "Mastodon");
-                feedback.post(url, token).await;
+                match feedback.post(url, token).await{
+                    Ok(response) => debug!("Feedback response: {response}"),
+                    Err(error) => {
+                        error!("Feedback response: {error}");
+                        let mut next_err = error.source();
+                        while next_err.is_some(){
+                            error!("caused by: {:#}", next_err.unwrap());
+                            next_err = next_err.unwrap().source();
+                        }
+                    },
+                };
                 let thanks_message = format!("Gracias por tu idea @{}", nickname);
-                mastodon.post(&thanks_message, Some(new_last_id.to_string())).await;
-                let mm_message = format!("Src: Mastodon. From: @{}. Content: {}", &nickname, &parse_html(&content));
+                match mastodon.post(&thanks_message, Some(new_last_id.to_string())).await{
+                    Ok(response) => debug!("Mastodon post: {response}"),
+                    Err(error) => {
+                        error!("Feedback response: {error}");
+                        let mut next_err = error.source();
+                        while next_err.is_some(){
+                            error!("caused by: {:#}", next_err.unwrap());
+                            next_err = next_err.unwrap().source();
+                        }
+                    },
+                };
+                let mm_message = format!("Src: Mastodon. From: @{}. Content: {}", &nickname, &parse_html(content));
                 let html_message = format!(
                     "<h6>Src: Mastodon</h6><ul><li>Id: {}</li><li>From: @{}</li><li>Content:</li></ul>{}",
                     &new_last_id,
                     &nickname,
                     &content
                 );
-                debug!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
+                debug!("Response: {:?}", matrix.post_message(room_id, &mm_message, &html_message).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "idea",
                     "from": format!("@{}", &nickname),
-                    "message": &parse_html(&content),
+                    "message": &parse_html(content),
                 }])).await.unwrap();
             }else if let Some(message) = check_key("pregunta", content){
                 let feedback = Feedback::new("pregunta", &new_last_id, &message, name, nickname, 0, "Mastodon");
-                feedback.post(url, token).await;
+                match feedback.post(url, token).await{
+                    Ok(response) => debug!("Feedback response: {response}"),
+                    Err(error) => {
+                        error!("Feedback response: {error}");
+                        let mut next_err = error.source();
+                        while next_err.is_some(){
+                            error!("caused by: {:#}", next_err.unwrap());
+                            next_err = next_err.unwrap().source();
+                        }
+                    },
+                };
                 let thanks_message = format!("Gracias por tu pregunta @{}", nickname);
-                mastodon.post(&thanks_message, Some(new_last_id.to_string())).await;
+                match mastodon.post(&thanks_message, Some(new_last_id.to_string())).await{
+                    Ok(response) => debug!("Mastodon post: {response}"),
+                    Err(error) => {
+                        error!("Feedback response: {error}");
+                        let mut next_err = error.source();
+                        while next_err.is_some(){
+                            error!("caused by: {:#}", next_err.unwrap());
+                            next_err = next_err.unwrap().source();
+                        }
+                    },
+                };
                 let mm_message = format!("Src: Mastodon. From: @{}. Content: {}", &nickname, &parse_html(&content));
                 let html_message = format!(
                     "<h6>Src: Mastodon</h6><ul><li>Id: {}</li><li>From: @{}</li><li>Content:</li></ul>{}",
@@ -140,7 +180,7 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                     &nickname,
                     &content
                 );
-                debug!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
+                debug!("Response: {:?}", matrix.post_message(room_id, &mm_message, &html_message).await);
                 zinc.publish(&json!([{
                     "src": "Mastodon",
                     "type": "pregunta",
@@ -151,27 +191,67 @@ async fn search(url: &str, token: &str, mastodon: &Mastodon, matrix: &Matrix,
                 let (commentario, _reference) = option;
                 if let Some(message) = commentario{
                     let feedback = Feedback::new("comentario", &new_last_id, &message, name, nickname, 0, "Mastodon");
-                    feedback.post(url, token).await;
+                    match feedback.post(url, token).await{
+                        Ok(response) => debug!("Feedback response: {response}"),
+                        Err(error) => {
+                            error!("Feedback response: {error}");
+                            let mut next_err = error.source();
+                            while next_err.is_some(){
+                                error!("caused by: {:#}", next_err.unwrap());
+                                next_err = next_err.unwrap().source();
+                            }
+                        },
+                    };
                     let thanks_message = format!("Gracias por tu comentario @{}", nickname);
-                    mastodon.post(&thanks_message, Some(new_last_id.to_string())).await;
-                let mm_message = format!("Src: Mastodon. From: @{}. Content: {}", &nickname, &parse_html(&content));
-                let html_message = format!(
-                    "<h6>Src: Mastodon</h6><ul><li>Id: {}</li><li>From: @{}</li><li>Content:</li></ul>{}",
-                    &new_last_id,
-                    &nickname,
-                    &content
-                );
-                debug!("Response: {:?}", matrix.post_message(&room_id, &mm_message, &html_message).await);
-                zinc.publish(&json!([{
-                    "src": "Mastodon",
-                    "type": "comentario",
-                    "from": format!("@{}", &nickname),
-                    "message": &parse_html(&content),
-                }])).await.unwrap();
+                    match mastodon.post(&thanks_message, Some(new_last_id.to_string())).await{
+                        Ok(response) => debug!("Mastodon post: {response}"),
+                        Err(error) => {
+                            error!("Feedback response: {error}");
+                            let mut next_err = error.source();
+                            while next_err.is_some(){
+                                error!("caused by: {:#}", next_err.unwrap());
+                                next_err = next_err.unwrap().source();
+                            }
+                        },
+                    };
+                    let mm_message = format!("Src: Mastodon. From: @{}. Content: {}", &nickname, &parse_html(content));
+                    let html_message = format!(
+                        "<h6>Src: Mastodon</h6><ul><li>Id: {}</li><li>From: @{}</li><li>Content:</li></ul>{}",
+                        &new_last_id,
+                        &nickname,
+                        &content
+                    );
+                    debug!("Response: {:?}", matrix.post_message(room_id, &mm_message, &html_message).await);
+                    match zinc.publish(&json!([{
+                        "src": "Mastodon",
+                        "type": "comentario",
+                        "from": format!("@{}", &nickname),
+                        "message": &parse_html(content),
+                    }])).await{
+                            Ok(response) => debug!("Response: {response}"),
+                            Err(error) => {
+                                error!("Feedback response: {error}");
+                                let mut next_err = error.source();
+                                while next_err.is_some(){
+                                    error!("caused by: {:#}", next_err.unwrap());
+                                    next_err = next_err.unwrap().source();
+                                }
+                            },
+                        }
                 }
             }else{
                 let feedback = Feedback::new("mencion", &new_last_id, content, name, nickname, 0, "Mastodon");
-                feedback.post(url, token).await;
+                match feedback.post(url, token).await{
+                    Ok(response) => debug!("Feedback response: {response}"),
+                    Err(error) => {
+                        error!("Feedback response: {error}");
+                        let mut next_err = error.source();
+                        while next_err.is_some(){
+                            error!("caused by: {:#}", next_err.unwrap());
+                            next_err = next_err.unwrap().source();
+                        }
+                    },
+                };
                 let mm_message = format!("Src: Mastodon. From: @{}. Content: {}", &nickname, &parse_html(&content));
                 let html_message = format!(
                     "<h6>Src: Mastodon</h6><ul><li>Id: {}</li><li>From: @{}</li><li>Content:</li></ul>{}",
