@@ -56,15 +56,12 @@ async fn main() {
     let zinc_token = env::var("ZINC_TOKEN").expect("Not found token");
     let zinc = Zinc::new(&zinc_base_url, &zinc_indice, &zinc_token);
     loop {
-        match search(&url, &token, &mastodon, &matrix, &matrix_room_id,
-                     &last_id, &zinc).await{
-                Some(new_last_id) => {
-                    config.last_id = new_last_id.to_string();
-                    debug!("Save: {:?}", config.save(&FILENAME));
-                    last_id = new_last_id.to_string();
-                },
-                _ => {},
-            }
+        if let Some(new_last_id) = search(&url, &token, &mastodon, &matrix,
+                &matrix_room_id, &last_id, &zinc).await{
+            config.last_id = new_last_id.to_string();
+            debug!("Save: {:?}", config.save(FILENAME));
+            last_id = new_last_id.to_string();
+        }
         thread::sleep(sleep_time);
     }
 }
